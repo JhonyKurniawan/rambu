@@ -1,79 +1,75 @@
 import { createClient } from "@supabase/supabase-js"
 
+
 const supabase = createClient(
-process.env.SUPABASE_URL,
-process.env.SUPABASE_KEY
+process.env.VITE_SUPABASE_URL,
+process.env.VITE_SUPABASE_KEY
 )
+
 
 
 export default async function handler(req,res){
 
-res.setHeader(
-"Access-Control-Allow-Origin",
-"*"
-)
 
-res.setHeader(
-"Access-Control-Allow-Methods",
-"GET,POST,PUT,DELETE"
-)
+console.log("URL:", process.env.SUPABASE_URL)
+console.log("BODY:", req.body)
 
 
-if(req.method==="GET"){
+
+if(req.method === "POST"){
+
+
+const {data,error} = await supabase
+.from("rambu")
+.insert([
+{
+nama_rambu:req.body.nama_rambu,
+lokasi_daerah:req.body.lokasi_daerah,
+latitude:req.body.latitude,
+longitude:req.body.longitude,
+foto:req.body.foto
+}
+])
+.select()
+
+
+
+if(error){
+
+console.log(error)
+
+return res.status(500).json({
+error:error.message
+})
+
+}
+
+
+return res.json(data)
+
+
+}
+
+
+
+if(req.method === "GET"){
+
 
 const {data,error}=await supabase
 .from("rambu")
 .select("*")
-.order("id",{ascending:false})
 
 
-return res.json(data)
+if(error){
 
-}
-
-
-
-if(req.method==="POST"){
-
-const {data,error}=await supabase
-.from("rambu")
-.insert([req.body])
-
-
-return res.json(data)
-
-}
-
-
-
-if(req.method==="DELETE"){
-
-await supabase
-.from("rambu")
-.delete()
-.eq("id",req.query.id)
-
-
-return res.json({
-status:"hapus"
+return res.status(500).json({
+error:error.message
 })
 
 }
 
 
-
-if(req.method==="PUT"){
-
-
-await supabase
-.from("rambu")
-.update(req.body)
-.eq("id",req.query.id)
-
-
-return res.json({
-status:"update"
-})
+return res.json(data)
 
 
 }

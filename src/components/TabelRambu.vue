@@ -7,10 +7,11 @@
 
 <tr>
 
-<th>No</th>
 <th>Nama</th>
 <th>Lokasi</th>
-<th>Jenis</th>
+<th>Latitude</th>
+<th>Longitude</th>
+<th>Foto</th>
 <th>Aksi</th>
 
 </tr>
@@ -33,31 +34,30 @@ v-for="(r,i) in data"
 
 <td>{{r.lokasi_daerah}}</td>
 
-<td>{{r.jenis_rambu}}</td>
+<td>{{r.latitude}}</td>
 
+<td>{{r.longitude}}</td>
 
 <td>
 
-
-<button
-class="btn btn-warning me-2"
-@click="$emit('edit',r)"
->
-Edit
-</button>
-
-
-
-<button
-class="btn btn-danger"
-@click="hapus(r.id)"
->
-Hapus
-</button>
-
+<img 
+:src="r.foto"
+width="80"
+/>
 
 </td>
 
+
+</tr>
+
+
+<tr v-if="data.length===0">
+
+<td colspan="5" class="text-center">
+
+Data belum ada
+
+</td>
 
 </tr>
 
@@ -80,16 +80,34 @@ import axios from "axios"
 const data=ref([])
 
 
+const API = import.meta.env.VITE_API_URL
+
+
 
 async function load(){
 
+try{
 
-let res=await axios.get(
-"/api/rambu"
+
+let res = await axios.get(
+API + "/rambu"
 )
 
 
-data.value=res.data
+data.value = res.data
+
+
+console.log(res.data)
+
+
+}catch(error){
+
+console.log(
+"API ERROR",
+error
+)
+
+}
 
 
 }
@@ -99,18 +117,33 @@ data.value=res.data
 async function hapus(id){
 
 
+try{
+
+
 await axios.delete(
-"/api/rambu?id="+id
+API+"/rambu?id="+id
 )
 
 
 load()
 
 
+}catch(error){
+
+console.log(error)
+
 }
 
 
-onMounted(load)
+}
+
+
+
+onMounted(()=>{
+
+load()
+
+})
 
 
 </script>
