@@ -1,51 +1,9 @@
-import { MongoClient, ObjectId } from "mongodb"
+import { createClient } from "@supabase/supabase-js"
 
-const uri = process.env.MONGODB_URI
-let client
-let clientPromise
-
-if (!uri) {
-  throw new Error("Please add your MONGODB_URI environment variable")
-}
-
-if (process.env.NODE_ENV === "development") {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(uri)
-    global._mongoClientPromise = client.connect()
-  }
-  clientPromise = global._mongoClientPromise
-} else {
-  client = new MongoClient(uri)
-  clientPromise = client.connect()
-}
-
-function getFilterById(id) {
-  if (!id) return null
-  try {
-    if (ObjectId.isValid(id)) {
-      return { _id: new ObjectId(id) }
-    }
-  } catch (e) {}
-
-  // Fallback for custom or legacy string/number ids
-  const numVal = Number(id)
-  if (!isNaN(numVal)) {
-    return {
-      $or: [
-        { _id: id },
-        { _id: numVal },
-        { id: id },
-        { id: numVal }
-      ]
-    }
-  }
-  return {
-    $or: [
-      { _id: id },
-      { id: id }
-    ]
-  }
-}
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_KEY
+)
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -63,76 +21,72 @@ export default async function handler(req, res) {
   }
 
   try {
-    const client = await clientPromise
-    const db = client.db("db_rambu")
-    const collection = db.collection("rambu")
-
-    // GET METHOD
+    // GET
     if (req.method === "GET") {
-      const data = await collection.find({}).toArray()
-      const formattedData = data.map(item => ({
-        ...item,
-        id: item._id.toString()
-      }))
-      return res.status(200).json(formattedData)
+      const { data, error } = await supabase
+        .from("rambu")
+        .select("*")
+        .order("id", { ascending: true })
+
+      if (error) throw error
+      return res.status(200).json(data)
     }
 
-    // POST METHOD
+    // POST
     if (req.method === "POST") {
-      const doc = {
-        nama_rambu: req.body.nama_rambu,
-        lokasi_daerah: req.body.lokasi_daerah,
-        latitude: req.body.latitude,
-        longitude: req.body.longitude,
-        foto: req.body.foto,
-        tanggal_input: new Date()
-      }
-      const result = await collection.insertOne(doc)
-      return res.status(201).json({
-        ...doc,
-        id: result.insertedId.toString()
-      })
+      const { data, error } = await supabase
+        .from("rambu")
+        .insert([
+          {
+            nama_rambu: req.body.nama_rambu,
+            lokasi_daerah: req.body.lokasi_daerah,
+            latitude: req.body.latitude,
+            longitude: req.body.longitude,
+            foto: req.body.foto
+          }
+        ])
+        .select()
+
+      if (error) throw error
+      return res.status(201).json(data[0])
     }
 
-    // PUT METHOD
+    // PUT
     if (req.method === "PUT") {
       const { id } = req.query
       if (!id) {
         return res.status(400).json({ error: "Missing id parameter" })
       }
-      const filter = getFilterById(id)
-      const { _id, id: _, ...updateFields } = req.body
+      const { id: _, ...updateFields } = req.body
+      const { data, error } = await supabase
+        .from("rambu")
+        .update(updateFields)
+        .eq("id", id)
+        .select()
 
-      const result = await collection.updateOne(
-        filter,
-        { $set: updateFields }
-      )
-      return res.status(200).json({
-        success: true,
-        matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount
-      })
+      if (error) throw error
+      return res.status(200).json(data[0])
     }
 
-    // DELETE METHOD
+    // DELETE
     if (req.method === "DELETE") {
       const { id } = req.query
       if (!id) {
         return res.status(400).json({ error: "Missing id parameter" })
       }
-      const filter = getFilterById(id)
-      const result = await collection.deleteOne(filter)
-      return res.status(200).json({
-        success: true,
-        deletedCount: result.deletedCount
-      })
+      const { data, error } = await supabase
+        .from("rambu")
+        .delete()
+        .eq("id", id)
+        .select()
+
+      if (error) throw error
+      return res.status(200).json({ success: true, deleted: data })
     }
 
-    // METHOD NOT ALLOWED
     return res.status(405).json({ error: `Method ${req.method} not allowed` })
-
   } catch (error) {
-    console.error("API error:", error)
+    console.error("Supabase API error:", error)
     return res.status(500).json({ error: error.message || "Internal server error" })
   }
 }
