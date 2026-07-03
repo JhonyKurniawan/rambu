@@ -5,14 +5,14 @@
     <nav class="navbar-modern">
       <div class="nav-left">
         <div class="logo-box">R</div>
-        <span class="brand">Deperjaro</span>
+        <span class="brand">Diperjaro</span>
       </div>
     </nav>
 
     <!-- HEADER -->
     <header class="app-header animate-header">
       <h1>Pendataan Rambu Lalu Lintas</h1>
-      <p>Sistem Informasi Dishub - Deperjaro</p>
+      <p>Sistem Informasi Dishub - Diperjaro</p>
     </header>
 
     <!-- CONTENT -->
