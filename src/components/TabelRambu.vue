@@ -1,149 +1,164 @@
 <template>
 
-<table class="table table-bordered">
+<div class="mt-4">
 
+<h3>Data Rambu</h3>
+
+<div class="mb-3">
+
+<button
+class="btn btn-success"
+@click="exportExcel"
+>
+Export Excel
+</button>
+
+</div>
+
+<table class="table table-bordered">
 
 <thead>
 
 <tr>
-
-<th>Nama</th>
-<th>Lokasi</th>
-<th>Latitude</th>
-<th>Longitude</th>
-<th>Foto</th>
-<th>Aksi</th>
-
+    <th>No</th>
+    <th>Foto</th>
+    <th>Nama Rambu</th>
+    <th>Lokasi Daerah</th>
+    <th>Latitude</th>
+    <th>Longitude</th>
+    <th>Aksi</th>
 </tr>
 
 </thead>
 
-
 <tbody>
 
-
 <tr
-v-for="(r,i) in data"
-:key="r.id"
+v-for="(item,index) in data"
+:key="item.id"
 >
 
+<td>
+  {{ index + 1 }}
+</td>
 
-<td>{{i+1}}</td>
+<td>
+  <img
+    v-if="item.foto"
+    :src="item.foto.startsWith('http') ? item.foto : `http://localhost/rambu-app/backend-rambu/uploads/${item.foto}`"
+    style="
+      width:80px;
+      height:80px;
+      object-fit:cover;
+      border-radius:8px;
+    "
+  />
+  <span v-else class="text-muted">Tidak ada foto</span>
+</td>
 
-<td>{{r.nama_rambu}}</td>
+<td>
+  {{ item.nama_rambu }}
+</td>
 
-<td>{{r.lokasi_daerah}}</td>
+<td>
+  {{ item.lokasi_daerah }}
+</td>
 
-<td>{{r.latitude}}</td>
+<td>
+  {{ item.latitude }}
+</td>
 
-<td>{{r.longitude}}</td>
+<td>
+  {{ item.longitude }}
+</td>
 
 <td>
 
-<img 
-:src="r.foto"
-width="80"
-/>
+<button
+class="btn btn-warning btn-sm me-2"
+@click="editData(item)"
+>
+Edit
+</button>
 
-</td>
-
-
-</tr>
-
-
-<tr v-if="data.length===0">
-
-<td colspan="5" class="text-center">
-
-Data belum ada
+<button
+class="btn btn-danger btn-sm"
+@click="hapus(item.id)"
+>
+Hapus
+</button>
 
 </td>
 
 </tr>
-
 
 </tbody>
 
-
 </table>
+
+</div>
 
 </template>
 
-
-
 <script setup>
 
-import {ref,onMounted} from "vue"
-import axios from "axios"
+import axios from 'axios'
+import { ref,onMounted } from 'vue'
+import * as XLSX from 'xlsx'
 
-
-const data=ref([])
-
-
+const data = ref([])
 const API = import.meta.env.VITE_API_URL
 
-
-
-async function load(){
-
-try{
-
-
-let res = await axios.get(
-API + "/rambu"
-)
-
-
-data.value = res.data
-
-
-console.log(res.data)
-
-
-}catch(error){
-
-console.log(
-"API ERROR",
-error
-)
-
+async function loadData(){
+  const res = await axios.get(API + '/rambu')
+  data.value = res.data
 }
 
-
-}
-
-
-
-async function hapus(id){
-
-
-try{
-
-
-await axios.delete(
-API+"/rambu?id="+id
-)
-
-
-load()
-
-
-}catch(error){
-
-console.log(error)
-
-}
-
-
-}
-
-
-
-onMounted(()=>{
-
-load()
-
+onMounted(() => {
+  loadData()
 })
 
+function exportExcel(){
+    const exportData = data.value.map(item => ({
+        "Nama Rambu": item.nama_rambu,
+        "Lokasi Daerah": item.lokasi_daerah,
+        "Latitude": item.latitude,
+        "Longitude": item.longitude,
+        "Foto": item.foto
+    }))
+    const worksheet =
+        XLSX.utils.json_to_sheet(exportData)
+
+    const workbook =
+        XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Data Rambu"
+    )
+
+    XLSX.writeFile(
+        workbook,
+        "Data_Rambu.xlsx"
+    )
+}
+
+async function hapus(id){
+    if(!confirm("Yakin ingin menghapus data?")){
+        return
+    }
+
+    await axios.delete(`${API}/rambu?id=${id}`)
+    loadData()
+}
+
+const emit = defineEmits([
+    'edit'
+])
+
+function editData(item){
+    emit('edit', item)
+}
 
 </script>
